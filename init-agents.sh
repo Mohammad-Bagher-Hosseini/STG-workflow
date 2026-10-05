@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# 1. ساخت دایرکتوری‌های پایه
+# Ensure essential target directories exist
 mkdir -p .agents/personas .agents/templates
 
-# محتوای الحاقی جریان کاری اختیاری
+# Define optional Spec-Test-Gate snippet to append or initialize
 SPEC_GATE_SNIPPET='
 # --- SPEC-TEST-GATE ENGINE (OPT-IN WORKFLOW) ---
 ## Optional Workflow: Spec-Test-Gate (STG)
 
 Opt-in only. When triggered by the user (e.g., `run with "spec-test-gate"`), strictly enforce this test-first, approval-gated protocol.
-All configurations, test runners, and commands are loaded from `.agents/stack.env`.
+All configurations, test runners, and commands are dynamically loaded from `.agents/stack.env`.
 
 ### Universal Rules
 1. **Comment Policy:** All code comments MUST be written in English. Every comment MUST be placed on its own line (above or below the code line). Never place inline comments at the end of code lines.
@@ -27,7 +27,7 @@ All configurations, test runners, and commands are loaded from `.agents/stack.en
 - `run phase 5`: Switches to Session 3 persona for mutation auditing.
 # --- END SPEC-TEST-GATE ENGINE ---'
 
-# 2. شناسایی و الحاق به AGENTS.md
+# Locate any pre-existing agent definition files
 TARGET_AGENT_FILE=""
 for f in AGENTS.md agents.md AGENT.md; do
   if [ -f "$f" ]; then
@@ -36,27 +36,28 @@ for f in AGENTS.md agents.md AGENT.md; do
   fi
 done
 
+# Intelligently append or create the master AGENTS.md file
 if [ -n "$TARGET_AGENT_FILE" ]; then
+  # Check if Spec-Test-Gate workflow is already registered
   if grep -q "SPEC-TEST-GATE ENGINE" "$TARGET_AGENT_FILE"; then
     echo "==> [INFO] Spec-Test-Gate workflow is already registered in $TARGET_AGENT_FILE. Skipping append."
   else
-    echo "==> [INFO] Existing $TARGET_AGENT_FILE found. Appending Spec-Test-Gate..."
+    echo "==> [INFO] Existing $TARGET_AGENT_FILE found. Appending Spec-Test-Gate block..."
     printf "\n%s\n" "$SPEC_GATE_SNIPPET" >> "$TARGET_AGENT_FILE"
     echo "==> [SUCCESS] Workflow appended to $TARGET_AGENT_FILE."
   fi
 else
   echo "==> [INFO] No existing agents.md found. Creating new AGENTS.md..."
-  cat << 'EOF' > AGENTS.md
-# Agent Directives: Spec-Test-Gate Engine
-
-This repository strictly enforces the **Spec-Test-Gate (STG)** workflow.
-All agents must read `.agents/stack.env` to identify project-specific toolchains and commands.
-EOF
+  printf "%s\n" \
+    '# Agent Directives: Spec-Test-Gate Engine' \
+    '' \
+    'This repository strictly enforces the **Spec-Test-Gate (STG)** workflow.' \
+    'All agents must read `.agents/stack.env` to identify project-specific toolchains and commands.' > AGENTS.md
   printf "\n%s\n" "$SPEC_GATE_SNIPPET" >> AGENTS.md
   echo "==> [SUCCESS] Created AGENTS.md."
 fi
 
-# 3. بازنویسی پرسوناهای سه‌گانه
+# Author Persona 1: Test Author (Session 1)
 cat << 'EOF' > .agents/personas/01_test_author.md
 # Persona: Test Author (Session 1)
 Role: Senior Architect & TDD Lead.
@@ -79,6 +80,7 @@ Forbidden Actions: Writing business or domain logic in implementation files.
    - **CRITICAL HALT:** Stop completely. Output: `Task T-[N] test harness staged. Ready for review.` Do NOT touch `T-[N+1]`.
 EOF
 
+# Author Persona 2: Implementer (Session 2)
 cat << 'EOF' > .agents/personas/02_implementer.md
 # Persona: Implementer (Session 2)
 Role: Clean Code Craftsman.
@@ -93,6 +95,7 @@ Forbidden Actions: Modifying, deleting, or skipping any test files (*_test.*, sp
 5. Keep all modifications uncommitted in the working tree for human inspection.
 EOF
 
+# Author Persona 3: Mutation Auditor (Session 3)
 cat << 'EOF' > .agents/personas/03_auditor.md
 # Persona: Auditor (Session 3)
 Role: Adversarial Quality Auditor.
@@ -108,7 +111,7 @@ Forbidden Actions: Modifying test files to match broken code.
 4. Cleanly revert code to the original Green state (`git checkout`).
 EOF
 
-# 4. ایجاد تمپلیت صف تسک‌ها
+# Initialize task queue template
 cat << 'EOF' > .agents/templates/task_queue.md
 # Epic Specification & Task Queue
 
@@ -123,7 +126,7 @@ cat << 'EOF' > .agents/templates/task_queue.md
 | :--- | :--- | :--- | :--- | :--- | :--- |
 EOF
 
-# 5. منطق هوشمند برای پیکربندی یا تغییر مجدد استک پروژه
+# Handle project stack configuration
 CONFIGURE_STACK=true
 if [ -f .agents/stack.env ]; then
   read -rp "==> [WARN] .agents/stack.env already exists. Do you want to reconfigure/overwrite it? (y/N): " reconf
@@ -141,16 +144,18 @@ fi
 if [ "$CONFIGURE_STACK" = true ]; then
   echo "--------------------------------------------"
   echo "Select Project Stack:"
-  echo "1) Go (Testify / Bruno / Goose)"
+  echo "1) Go (Standard Library / Testify / Bruno / Goose)"
   echo "2) TypeScript / Node (Vitest / Prisma / Bruno)"
   echo "3) Python (Pytest / Alembic)"
   echo "4) Frappe / ERPNext (Bench / FrappeTestCase / Ruff)"
-  echo "5) Custom / Manual"
+  echo "5) PocketBase + Go (NewTestApp / ApiScenario / Bruno)"
+  echo "6) Custom / Manual"
   echo "--------------------------------------------"
-  read -rp "Enter choice [1-5]: " choice
+  read -rp "Enter choice [1-6]: " choice
 
   case "$choice" in
     1)
+      # Configuration for standard Go microservices and backends
       printf "%s\n" \
         'STACK_NAME="Go"' \
         'TEST_CMD="go test ./..."' \
@@ -160,6 +165,7 @@ if [ "$CONFIGURE_STACK" = true ]; then
         'API_TEST_CMD="bru run api-tests/ --env Local"' > .agents/stack.env
       ;;
     2)
+      # Configuration for TypeScript and Node ecosystems
       printf "%s\n" \
         'STACK_NAME="TypeScript"' \
         'TEST_CMD="pnpm test"' \
@@ -169,6 +175,7 @@ if [ "$CONFIGURE_STACK" = true ]; then
         'API_TEST_CMD="bru run api-tests/ --env Local"' > .agents/stack.env
       ;;
     3)
+      # Configuration for Python backend applications
       printf "%s\n" \
         'STACK_NAME="Python"' \
         'TEST_CMD="pytest"' \
@@ -178,6 +185,7 @@ if [ "$CONFIGURE_STACK" = true ]; then
         'API_TEST_CMD="bru run api-tests/ --env Local"' > .agents/stack.env
       ;;
     4)
+      # Configuration for Frappe and ERPNext frameworks
       read -rp "Enter Frappe App Name (e.g. erpnext, infra): " app_name
       read -rp "Enter Frappe Site Name [test_site]: " site_name
       site_name=${site_name:-test_site}
@@ -196,6 +204,27 @@ if [ "$CONFIGURE_STACK" = true ]; then
         "MUTATION_CMD=\"mutmut run --paths-to-mutate apps/${app_name}\"" > .agents/stack.env
       ;;
     5)
+      # Configuration for Go applications utilizing embedded PocketBase
+      read -rp "PocketBase tests directory [./...]: " pb_test_dir
+      pb_test_dir=${pb_test_dir:-./...}
+      read -rp "Bruno scenarios directory [tests/bruno]: " bruno_dir
+      bruno_dir=${bruno_dir:-tests/bruno}
+
+      printf "%s\n" \
+        'STACK_NAME="PocketBase + Go"' \
+        'FRAMEWORK="pocketbase"' \
+        "TEST_CMD=\"go test ${pb_test_dir}\"" \
+        "TEST_CMD_RACE=\"go test -race ${pb_test_dir}\"" \
+        'TEST_UNIT_CMD="go test -run ^TestUnit ./..."' \
+        'TEST_INTEGRATION_CMD="go test -run ^TestApi ./..."' \
+        'LINT_CMD="golangci-lint run"' \
+        'FORMAT_CMD="gofmt -s -w ."' \
+        "API_TEST_CMD=\"bru run ${bruno_dir} --env Local\"" \
+        'MUTATION_TOOL="go-mutesting"' \
+        'MUTATION_CMD="go-mutesting ./..."' > .agents/stack.env
+      ;;
+    6)
+      # Prompt and configure custom developer toolchains
       echo "--- Custom Stack Configuration ---"
       read -rp "Stack Name [Custom]: " custom_name
       custom_name=${custom_name:-Custom}
