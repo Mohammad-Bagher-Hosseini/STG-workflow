@@ -11,13 +11,13 @@ case "$confirm" in
     ;;
 esac
 
-# 1. پاک‌سازی دایرکتوری .agents
+# 1. Clean up the .agents directory
 if [ -d .agents ]; then
   rm -rf .agents
   echo "==> [SUCCESS] Removed .agents/ directory."
 fi
 
-# 2. پاک‌سازی هوشمند از فایل‌های AGENTS.md
+# 2. Intelligently clean up AGENTS.md files
 TARGET_AGENT_FILE=""
 for f in AGENTS.md agents.md AGENT.md; do
   if [ -f "$f" ]; then
@@ -27,17 +27,17 @@ for f in AGENTS.md agents.md AGENT.md; do
 done
 
 if [ -n "$TARGET_AGENT_FILE" ]; then
-  # بررسی وجود نشانگر اختصاصی فلو
+  # Check for the workflow-specific marker
   if grep -q "SPEC-TEST-GATE ENGINE" "$TARGET_AGENT_FILE"; then
-    # بررسی اینکه آیا فایل فقط حاوی همین ابزار بوده یا بخش‌های دیگری هم دارد
+    # Check whether the file only contains this tool or also has other content
     NON_STG_LINES=$(grep -v "SPEC-TEST-GATE ENGINE" "$TARGET_AGENT_FILE" | grep -v "Spec-Test-Gate" | grep -v "^#" | grep -v "^$" | wc -l || true)
     
     if [ "$NON_STG_LINES" -le 5 ]; then
-      # فایل صرفاً برای همین فلو تولید شده بود؛ حذف کامل فایل
+      # The file was generated solely for this workflow; remove it completely
       rm -f "$TARGET_AGENT_FILE"
       echo "==> [SUCCESS] Removed standalone $TARGET_AGENT_FILE."
     else
-      # فایل از قبل قوانین اختصاصی دیگری داشته است؛ صرفاً بلاک مربوطه حذف می‌شود
+      # The file already contained other custom rules; remove only the relevant block
       sed -i.bak '/# --- SPEC-TEST-GATE ENGINE (OPT-IN WORKFLOW) ---/,/# --- END SPEC-TEST-GATE ENGINE ---/d' "$TARGET_AGENT_FILE"
       rm -f "${TARGET_AGENT_FILE}.bak"
       echo "==> [SUCCESS] Cleaned Spec-Test-Gate block from $TARGET_AGENT_FILE without touching original instructions."
@@ -45,7 +45,7 @@ if [ -n "$TARGET_AGENT_FILE" ]; then
   fi
 fi
 
-# حذف اسکریپت‌های نصب در صورت تمایل (اختیاری)
+# Optionally remove the installation scripts
 if [ -f init-agents.sh ]; then
   read -rp "Do you also want to remove init-agents.sh and uninstall-agents.sh? (y/N): " rm_scripts
   case "$rm_scripts" in
