@@ -1,5 +1,5 @@
 ---
-description: Initialize Spec-Test-Gate toolchain config (.agents/stack.env). Usage /init <language> [framework] [--force].
+description: Initialize Spec-Test-Gate toolchain config (.agents/stack.env). Usage /spec-test-gate:init <language> [framework] [--force].
 ---
 
 Initialize the STG toolchain by writing `.agents/stack.env`. Personas, templates, and rules ship inside the plugin — this command only configures project commands. Never touch `AGENTS.md`.
@@ -7,7 +7,7 @@ Initialize the STG toolchain by writing `.agents/stack.env`. Personas, templates
 ## Syntax
 
 ```text
-/init <language> [framework] [extra...] [--force]
+/spec-test-gate:init <language> [framework] [extra...] [--force]
 ```
 
 `<language>` is required: `go`, `typescript`, or `python`. `[framework]` is optional and defaults to `standard`. `custom` is used standalone (no language). `--force` overwrites an existing `.agents/stack.env`.
@@ -54,4 +54,4 @@ Base: `TEST_CMD="pytest"`, `TEST_CMD_RACE="pytest -n auto"`, `LINT_CMD="ruff che
 
 ### custom
 
-Standalone (`/init custom`): prompt for stack name, test/race/lint/format/api/mutation commands one by one, then write the file. Set `STACK_NAME` to the given name and `FRAMEWORK="custom"`.
+Standalone (`/spec-test-gate:init custom`): prompt for stack name, test/race/lint/format/api/mutation commands one by one, then write the file. Set `STACK_NAME` to the given name and `FRAMEWORK="custom"`.

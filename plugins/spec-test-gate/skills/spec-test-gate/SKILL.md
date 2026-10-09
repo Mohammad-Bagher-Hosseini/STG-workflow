@@ -14,8 +14,8 @@ Opt-in, test-first, approval-gated workflow. The **user owns the design** — th
 3. **User Owns the Design:** The AI MUST NEVER write the spec for the user. The user writes the spec including all touched artifacts and full logic. The AI only asks questions (`QUESTION:`) and offers labeled suggestions (`SUGGESTION:`). If the user offloads design ("you decide"), push back and force a decision.
 4. **Session Isolation:**
    - Session 1 (this skill + `test-author` agent): spec review + test authoring. No business logic.
-   - Session 2 (`/phase-4` + `implementer` agent, fresh session): task-by-task implementation. Tests frozen.
-   - Session 3 (`/phase-5` + `auditor` agent): mutation audit + final Green validation.
+   - Session 2 (`/spec-test-gate:phase-4` + `implementer` agent, fresh session): task-by-task implementation. Tests frozen.
+   - Session 3 (`/spec-test-gate:phase-5` + `auditor` agent): mutation audit + final Green validation.
 
 Toolchain commands come from plugin config or the project's test setup. Never hardcode a stack.
 
@@ -39,7 +39,7 @@ Toolchain commands come from plugin config or the project's test setup. Never ha
 
 ## Phase 2 — Single-Task Test Loop (one task per chat)
 
-For ONLY the next pending `T-[N]` (via `/step-task`):
+For ONLY the next pending `T-[N]` (via `/spec-test-gate:step-task`):
 
 1. Explain its behavior quadrant (Q1 Happy, Q2 Boundary, Q3 Invariant, Q4 Failure/Rollback).
 2. Scaffold the minimal interface/struct so tests compile.
@@ -49,4 +49,4 @@ For ONLY the next pending `T-[N]` (via `/step-task`):
 
 ## Phase 3 — Handoff
 
-After ALL harnesses are approved, tell the user to open a FRESH session and run `/phase-4` for task-by-task implementation, then `/phase-5` for audit.
+After ALL harnesses are approved, tell the user to open a FRESH session and run `/spec-test-gate:phase-4` for task-by-task implementation, then `/spec-test-gate:phase-5` for audit.

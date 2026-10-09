@@ -1,1 +1,1 @@
-{"name": "spec-test-gate-marketplace", "owner": {"name": "STG-workflow"}, "plugins": [{"description": "User-owned spec, test-first gates, task-by-task implementation and mutation audit.", "name": "spec-test-gate", "source": "./", "version": "1.0.0"}]}
+{"description": "Marketplace for the Spec-Test-Gate workflow plugin.", "name": "spec-test-gate-marketplace", "owner": {"name": "STG-workflow"}, "plugins": [{"description": "User-owned spec, test-first gates, task-by-task implementation and mutation audit.", "name": "spec-test-gate", "source": "./plugins/spec-test-gate"}]}

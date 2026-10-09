@@ -21,10 +21,14 @@ If you try to push design back onto the AI, it is instructed to push back and fo
 
 Prerequisites: Claude Code with plugin support.
 
+This repo is a **marketplace**. Add it once, then install the plugin from it:
+
 ```bash
-/plugin marketplace add ./
-/plugin install spec-test-gate
+/plugin marketplace add <owner>/STG-workflow
+/plugin install spec-test-gate@spec-test-gate-marketplace
 ```
+
+(`<owner>` is the GitHub user/org hosting this repo.)
 
 Verify:
 
@@ -32,31 +36,33 @@ Verify:
 /plugin list
 ```
 
-You should see `spec-test-gate@1.0.0`. After install, `/init`, `/spec-test-gate`, `/step-task`, `/phase-4`, `/phase-5` autocomplete as slash commands.
+You should see `spec-test-gate@spec-test-gate-marketplace` enabled. Plugin commands are namespaced: `/spec-test-gate:init`, `/spec-test-gate:spec-test-gate`, `/spec-test-gate:step-task`, `/spec-test-gate:phase-4`, `/spec-test-gate:phase-5`.
+
+Local dev (no marketplace): `claude --plugin-dir ./plugins/spec-test-gate`, or validate with `claude plugin validate ./plugins/spec-test-gate` and `claude plugin validate .` for the marketplace.
 
 ## Command map
 
 | Command | Phase | What happens |
 |---|---|---|
-| `/init <language> [framework]` | Setup | Writes `.agents/stack.env` with test/lint/format/API/mutation commands. See [Stacks](#stacks). |
-| `/spec-test-gate` | Phase 0 + 1 | Starts the workflow: you write the spec, AI interrogates, you decompose into tasks. |
-| `/step-task T-01` | Phase 2 | Authors the failing test harness for exactly ONE task, then halts for approval. |
-| `/phase-4` | Phase 4 (fresh session) | Implements tasks one by one from the final spec. Tests are frozen. |
-| `/phase-5` | Phase 5 | Mutation audit + final Green validation. |
+| `/spec-test-gate:init <language> [framework]` | Setup | Writes `.agents/stack.env` with test/lint/format/API/mutation commands. See [Stacks](#stacks). |
+| `/spec-test-gate:spec-test-gate` | Phase 0 + 1 | Starts the workflow: you write the spec, AI interrogates, you decompose into tasks. |
+| `/spec-test-gate:step-task T-01` | Phase 2 | Authors the failing test harness for exactly ONE task, then halts for approval. |
+| `/spec-test-gate:phase-4` | Phase 4 (fresh session) | Implements tasks one by one from the final spec. Tests are frozen. |
+| `/spec-test-gate:phase-5` | Phase 5 | Mutation audit + final Green validation. |
 
 ## The workflow in detail
 
-### Setup — `/init <stack>`
+### Setup — `/spec-test-gate:init <language> [framework]`
 
 Run once per project. This replaces the legacy `init-agents.sh` stack menu. Personas, templates, and rules now ship inside the plugin, so nothing is appended to your `AGENTS.md`.
 
 ```bash
-/init go                 # stdlib/Testify
-/init go gin             # or echo, fiber, chi, pocketbase
-/init typescript nest    # or node (default), express, fastify, next
-/init python django      # or standard (default), fastapi, flask, frappe
-/init python frappe myapp test_site
-/init custom
+/spec-test-gate:init go                 # stdlib/Testify
+/spec-test-gate:init go gin             # or echo, fiber, chi, pocketbase
+/spec-test-gate:init typescript nest    # or node (default), express, fastify, next
+/spec-test-gate:init python django      # or standard (default), fastapi, flask, frappe
+/spec-test-gate:init python frappe myapp test_site
+/spec-test-gate:init custom
 ```
 
 This writes `.agents/stack.env`, e.g. for Go:
@@ -74,7 +80,7 @@ Re-running `/init` without `--force` shows the current file and halts instead of
 
 ### Phase 0 — You write the spec, AI interrogates
 
-Run `/spec-test-gate`. The AI will **ask you to write the full spec** — it must not draft one for you.
+Run `/spec-test-gate:spec-test-gate`. The AI will **ask you to write the full spec** — it must not draft one for you.
 
 Your spec must list **every touched artifact with complete step-by-step logic**:
 
@@ -98,7 +104,7 @@ Once you provide a spec, the AI interrogates it: ambiguities, missing edge cases
 
 You break the finalized spec into an **Indivisible Task Queue** (`T-01`, `T-02`, ...). A task is indivisible if it covers one behavior in one boundary — e.g. "T-01: phone lookup returns 404 for unknown phone" is a task; "build auth" is not.
 
-The AI MAY propose a model breakdown, always labeled `SUGGESTION:`. You decide the final queue. Only after your explicit confirmation does the AI write [templates/task_queue.md](templates/task_queue.md):
+The AI MAY propose a model breakdown, always labeled `SUGGESTION:`. You decide the final queue. Only after your explicit confirmation does the AI write [plugins/spec-test-gate/templates/task_queue.md](plugins/spec-test-gate/templates/task_queue.md):
 
 ```markdown
 ## 1. User Spec (with touched artifacts & full logic)
@@ -121,10 +127,10 @@ Then it **HALTS** for queue confirmation.
 For each task, in its **own separate chat**, run e.g.:
 
 ```bash
-/step-task T-01
+/spec-test-gate:step-task T-01
 ```
 
-The AI (see [agents/test-author.md](agents/test-author.md)):
+The AI (see [plugins/spec-test-gate/agents/test-author.md](plugins/spec-test-gate/agents/test-author.md)):
 
 1. Explains the behavior quadrant:
    - **Q1 Happy** — the golden path.
@@ -150,10 +156,10 @@ After ALL harnesses are approved, the AI tells you to open a **fresh session** f
 In the new session, run:
 
 ```bash
-/phase-4
+/spec-test-gate:phase-4
 ```
 
-The AI (see [agents/implementer.md](agents/implementer.md)):
+The AI (see [plugins/spec-test-gate/agents/implementer.md](plugins/spec-test-gate/agents/implementer.md)):
 
 1. Reads the final spec, failing assertions, and `task_queue.md`.
 2. Picks up **only the next pending task** — never batches.
@@ -167,10 +173,10 @@ The AI (see [agents/implementer.md](agents/implementer.md)):
 Run:
 
 ```bash
-/phase-5
+/spec-test-gate:phase-5
 ```
 
-The AI (see [agents/auditor.md](agents/auditor.md)):
+The AI (see [plugins/spec-test-gate/agents/auditor.md](plugins/spec-test-gate/agents/auditor.md)):
 
 1. Selects core invariants from Phase 4 (boundary checks, auth gates, state locks).
 2. Injects controlled temporary mutations (inverted conditionals, bypassed validation).
@@ -182,7 +188,7 @@ The AI (see [agents/auditor.md](agents/auditor.md)):
 
 ## Universal rules
 
-Enforced across all phases (see [skills/spec-test-gate/SKILL.md](skills/spec-test-gate/SKILL.md)):
+Enforced across all phases (see [plugins/spec-test-gate/skills/spec-test-gate/SKILL.md](plugins/spec-test-gate/skills/spec-test-gate/SKILL.md)):
 
 1. **Comment policy** — all code comments in English, each on its own line. Never trailing inline comments.
 2. **Deterministic TDD** — never assume logic; rely strictly on interfaces and test assertions.
@@ -191,34 +197,36 @@ Enforced across all phases (see [skills/spec-test-gate/SKILL.md](skills/spec-tes
 
 ## Stacks
 
-Syntax: `/init <language> [framework] [--force]`. Old single-word forms (`/init pocketbase`, `/init frappe myapp`) still resolve.
+Syntax: `/spec-test-gate:init <language> [framework] [--force]`. Old single-word forms (`pocketbase`, `frappe myapp`) still resolve to `go pocketbase` / `python frappe myapp`.
 
 | Language | Frameworks | Command example |
 |---|---|---|
-| `go` | `standard` (default), `gin`, `echo`, `fiber`, `chi`, `pocketbase` | `/init go gin` |
-| `typescript` | `node` (default), `express`, `fastify`, `nest`, `next` | `/init typescript nest` |
-| `python` | `standard` (default), `django`, `fastapi`, `flask`, `frappe` | `/init python django` |
-| `custom` | — (prompts for each command) | `/init custom` |
+| `go` | `standard` (default), `gin`, `echo`, `fiber`, `chi`, `pocketbase` | `/spec-test-gate:init go gin` |
+| `typescript` | `node` (default), `express`, `fastify`, `nest`, `next` | `/spec-test-gate:init typescript nest` |
+| `python` | `standard` (default), `django`, `fastapi`, `flask`, `frappe` | `/spec-test-gate:init python django` |
+| `custom` | — (prompts for each command) | `/spec-test-gate:init custom` |
 
 Frameworks that change the toolchain get different commands — e.g. Django uses `python manage.py test` instead of `pytest`, Nest adds `pnpm test:e2e`, PocketBase splits unit/API runs. Frameworks sharing a toolchain (Gin, Echo, FastAPI...) reuse the base commands with a testing note. Unknown names halt with the supported matrix instead of guessing.
 
 ## Project layout
 
 ```text
-.claude-plugin/plugin.json  marketplace.json
-skills/spec-test-gate/SKILL.md     # Phases 0-3, the workflow heart
-commands/
-  init.md                          # /init — stack setup
-  spec-test-gate.md                # /spec-test-gate — Phases 0+1
-  step-task.md                     # /step-task — Phase 2, one task
-  phase-4.md                       # /phase-4 — implementation
-  phase-5.md                       # /phase-5 — audit
-agents/
-  test-author.md                   # Session 1 persona
-  implementer.md                   # Session 2 persona
-  auditor.md                       # Session 3 persona
-templates/task_queue.md            # Spec + queue record
-legacy/                            # Deprecated shims, removed in v2.0
+.claude-plugin/marketplace.json       # marketplace catalog (repo root)
+plugins/spec-test-gate/
+  .claude-plugin/plugin.json
+  skills/spec-test-gate/SKILL.md      # Phases 0-3, the workflow heart
+  commands/
+    init.md                           # :init — stack setup
+    spec-test-gate.md                 # :spec-test-gate — Phases 0+1
+    step-task.md                      # :step-task — Phase 2, one task
+    phase-4.md                        # :phase-4 — implementation
+    phase-5.md                        # :phase-5 — audit
+  agents/
+    test-author.md                    # Session 1 persona
+    implementer.md                    # Session 2 persona
+    auditor.md                        # Session 3 persona
+  templates/task_queue.md             # Spec + queue record
+legacy/                               # Deprecated shims, removed in v2.0
 ```
 
 ## Legacy migration
@@ -227,16 +235,16 @@ legacy/                            # Deprecated shims, removed in v2.0
 
 | Old way | New way |
 |---|---|
-| `bash init-agents.sh` (personas + stack menu) | `/plugin install spec-test-gate`, then `/init <stack>` |
-| `run with "spec-test-gate"` | `/spec-test-gate` |
-| `step task T-01` | `/step-task T-01` |
-| `run phase 4` / `run phase 5` | `/phase-4` / `/phase-5` |
+| `bash init-agents.sh` (personas + stack menu) | `/plugin install spec-test-gate@spec-test-gate-marketplace`, then `/spec-test-gate:init <language> [framework]` |
+| `run with "spec-test-gate"` | `/spec-test-gate:spec-test-gate` |
+| `step task T-01` | `/spec-test-gate:step-task T-01` |
+| `run phase 4` / `run phase 5` | `/spec-test-gate:phase-4` / `/spec-test-gate:phase-5` |
 | `bash uninstall-agents.sh` | `/plugin uninstall spec-test-gate` (+ delete `.agents/` if desired) |
 
 ## FAQ
 
 **The AI started designing the spec for me. What do I do?**
-Tell it to stop and ask questions instead. The skill, commands, and agents all forbid AI-authored specs — if it happens, it is a bug: point it at `skills/spec-test-gate/SKILL.md` rule 3.
+Tell it to stop and ask questions instead. The skill, commands, and agents all forbid AI-authored specs — if it happens, it is a bug: point it at `plugins/spec-test-gate/skills/spec-test-gate/SKILL.md` rule 3.
 
 **Can I batch tasks to go faster?**
 No — batching is the failure mode STG exists to prevent. One task, one chat, one approval.

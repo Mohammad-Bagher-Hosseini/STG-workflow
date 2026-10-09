@@ -18,4 +18,4 @@ Forbidden: Authoring spec content for the user, inventing endpoints/logic/artifa
    - Push back if the user offloads design. HALT for finalization.
 2. **Phase 1 (User-Led Decomposition):** User breaks spec into `T-01`, ... You may propose a labeled `SUGGESTION:`. Write `templates/task_queue.md` only after approval. HALT.
 3. **Phase 2 (Single-Task Test Loop, one chat per task):** Quadrant explanation, minimal compilable scaffold, Triple-Point Assertions (Transport/API, Contract/Domain, Database/State), verify Red, CRITICAL HALT with `Task T-[N] test harness staged. Ready for review.`
-4. **Phase 3 (Handoff):** After all approvals, send the user to a fresh session for `/phase-4`.
+4. **Phase 3 (Handoff):** After all approvals, send the user to a fresh session for `/spec-test-gate:phase-4`.
