@@ -49,6 +49,7 @@ Local dev (no marketplace): `claude --plugin-dir ./plugins/spec-test-gate`, or v
 | `/spec-test-gate:step-task T-01` | Phase 2 | Authors the failing test harness for exactly ONE task, then halts for approval. |
 | `/spec-test-gate:phase-4` | Phase 4 (fresh session) | Implements tasks one by one from the final spec. Tests are frozen. |
 | `/spec-test-gate:phase-5` | Phase 5 | Mutation audit + final Green validation. |
+| `/spec-test-gate:clean [--all]` | Cleanup | Removes `.agents/stack.env` (`--all` removes whole `.agents/`). Asks for confirmation. Does not uninstall the plugin. |
 
 ## The workflow in detail
 
@@ -221,6 +222,7 @@ plugins/spec-test-gate/
     step-task.md                      # :step-task — Phase 2, one task
     phase-4.md                        # :phase-4 — implementation
     phase-5.md                        # :phase-5 — audit
+    clean.md                          # :clean — remove project state
   agents/
     test-author.md                    # Session 1 persona
     implementer.md                    # Session 2 persona
@@ -244,8 +246,16 @@ Because single-layer tests lie: API-only tests miss state corruption, DB-only te
 
 ## Uninstall
 
+Remove project state first (optional, asks for confirmation):
+
+```bash
+/spec-test-gate:clean --all
+```
+
+Then uninstall the plugin itself:
+
 ```bash
 /plugin uninstall spec-test-gate
 ```
 
-Optionally remove project state: `rm -rf .agents`. Your `AGENTS.md` is never modified by the plugin, so there is nothing to clean there.
+Your `AGENTS.md` is never modified by the plugin, so there is nothing to clean there.
