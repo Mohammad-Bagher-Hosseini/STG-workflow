@@ -1,8 +1,11 @@
 ---
 description: Initialize Spec-Test-Gate toolchain config (.agents/stack.env). Usage /spec-test-gate:init <language> [framework] [--force].
+argument-hint: [go|typescript|python|custom] [framework] [--force]
 ---
 
-Initialize the STG toolchain by writing `.agents/stack.env`. Personas, templates, and rules ship inside the plugin — this command only configures project commands. Never touch `AGENTS.md`.
+Initialize the STG toolchain by writing `.agents/stack.env` in the CURRENT project directory.
+
+Scope guard: run this inside a TARGET project repo, never inside the spec-test-gate marketplace repo itself. The ONLY file this command creates is `<project-root>/.agents/stack.env`. Do NOT copy plugin files (skills, commands, agents, templates) into the project — they load from the installed plugin. Never touch `AGENTS.md`.
 
 ## Syntax
 

@@ -1,5 +1,6 @@
 ---
 description: Author the failing test harness for exactly one task T-[N], then halt for approval.
+argument-hint: <T-01>
 ---
 
 Author the test harness for ONLY task `$ARGUMENTS` following `skills/spec-test-gate/SKILL.md` Phase 2:
