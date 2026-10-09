@@ -54,7 +54,7 @@ Local dev (no marketplace): `claude --plugin-dir ./plugins/spec-test-gate`, or v
 
 ### Setup — `/spec-test-gate:init <language> [framework]`
 
-Run once per project. This replaces the legacy `init-agents.sh` stack menu. Personas, templates, and rules now ship inside the plugin, so nothing is appended to your `AGENTS.md`.
+Run once per project. Personas, templates, and rules ship inside the plugin, so nothing is appended to your `AGENTS.md`.
 
 ```bash
 /spec-test-gate:init go                 # stdlib/Testify
@@ -226,20 +226,7 @@ plugins/spec-test-gate/
     implementer.md                    # Session 2 persona
     auditor.md                        # Session 3 persona
   templates/task_queue.md             # Spec + queue record
-legacy/                               # Deprecated shims, removed in v2.0
 ```
-
-## Legacy migration
-
-`legacy/init-agents.sh` and `legacy/uninstall-agents.sh` are deprecated shims kept only for checkouts provisioned by the old script. They print a deprecation notice and will be removed in v2.0.
-
-| Old way | New way |
-|---|---|
-| `bash init-agents.sh` (personas + stack menu) | `/plugin install spec-test-gate@spec-test-gate-marketplace`, then `/spec-test-gate:init <language> [framework]` |
-| `run with "spec-test-gate"` | `/spec-test-gate:spec-test-gate` |
-| `step task T-01` | `/spec-test-gate:step-task T-01` |
-| `run phase 4` / `run phase 5` | `/spec-test-gate:phase-4` / `/spec-test-gate:phase-5` |
-| `bash uninstall-agents.sh` | `/plugin uninstall spec-test-gate` (+ delete `.agents/` if desired) |
 
 ## FAQ
 
