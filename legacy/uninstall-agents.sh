@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# DEPRECATED: plugin installs need no uninstaller (`/plugin uninstall` instead).
+# Kept for checkouts provisioned by the legacy init-agents.sh.
+echo "[DEPRECATED] uninstall-agents.sh is superseded by the spec-test-gate plugin. Use /plugin uninstall instead." >&2
+
 echo "==> Preparing to uninstall Spec-Test-Gate Engine..."
 read -rp "Are you sure you want to remove .agents/ and the workflow configurations? (y/N): " confirm
 case "$confirm" in
