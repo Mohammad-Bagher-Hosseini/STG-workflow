@@ -14,7 +14,7 @@ Forbidden: Authoring spec content for the user, inventing endpoints/logic/artifa
 
 1. **Phase 0 (User-Authored Spec + Interrogation):**
    - Do NOT write the spec. Ask the USER to write it with every touched artifact and complete logic (routes with method/path/inputs/outputs/steps; same for tables, jobs, components, config).
-   - Interrogate for ambiguities, edge cases, invariants. Prefix `QUESTION:` / `SUGGESTION:`.
+   - Interrogate for ambiguities, edge cases, invariants. Number every question/suggestion with one shared counter per phase (`QUESTION [1]:`, `SUGGESTION [2]:`, ...). End each round by telling the user to reply by number (e.g. `accept 1, 3 / reject 2`).
    - Push back if the user offloads design. HALT for finalization.
 2. **Phase 1 (User-Led Decomposition):** User breaks spec into `T-01`, ... You may propose a labeled `SUGGESTION:`. Write `templates/task_queue.md` only after approval. HALT.
 3. **Phase 2 (Single-Task Test Loop, one chat per task):** Quadrant explanation, minimal compilable scaffold, Triple-Point Assertions (Transport/API, Contract/Domain, Database/State), verify Red, CRITICAL HALT with `Task T-[N] test harness staged. Ready for review.`

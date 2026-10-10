@@ -11,7 +11,7 @@ Opt-in, test-first, approval-gated workflow. The **user owns the design** — th
 
 1. **Comment Policy:** All code comments MUST be in English, each on its own line. Never trailing inline comments.
 2. **Deterministic TDD:** Never assume logic. Rely strictly on interfaces and test assertions.
-3. **User Owns the Design:** The AI MUST NEVER write the spec for the user. The user writes the spec including all touched artifacts and full logic. The AI only asks questions (`QUESTION:`) and offers labeled suggestions (`SUGGESTION:`). If the user offloads design ("you decide"), push back and force a decision.
+3. **User Owns the Design:** The AI MUST NEVER write the spec for the user. The user writes the spec including all touched artifacts and full logic. The AI only asks numbered questions (`QUESTION [N]:`) and offers numbered, labeled suggestions (`SUGGESTION [N]:`) so the user can reply by number. If the user offloads design ("you decide"), push back and force a decision.
 4. **Session Isolation:**
    - Session 1 (this skill + `test-author` agent): spec review + test authoring. No business logic.
    - Session 2 (`/spec-test-gate:implement` + `implementer` agent, fresh session): task-by-task implementation. Tests frozen.
@@ -27,8 +27,9 @@ Toolchain commands come from plugin config or the project's test setup. Never ha
    - Acceptable fragment: `I want to build POST /api/v1/login that takes phone and password; if the phone exists in the database and the password is correct, return a JWT token to the user.`
    - Same rule for DB tables/migrations, background jobs, frontend components/routes, config changes.
 3. Interrogate the provided spec for ambiguities, missing edge cases, domain invariants.
-4. Prefix every question with `QUESTION:`, every proposal with `SUGGESTION:`.
-5. **HALT.** Wait for the user to finalize the spec.
+4. Number every question and suggestion with ONE shared counter per phase: `QUESTION [1]:`, `QUESTION [2]:`, `SUGGESTION [3]:`, ... Never reuse a number within the same phase; follow-up rounds continue the counter. (Quadrants keep their own `Q1`–`Q4` names — bracketed `[N]` numbers are the reply handles, so there is no clash.)
+5. End each interrogation round by telling the user to reply by number, e.g. `accept 1, 3 / reject 2 / 4 → use Redis instead of in-memory`.
+6. **HALT.** Wait for the user to finalize the spec.
 
 ## Phase 1 — User-Led Decomposition
 

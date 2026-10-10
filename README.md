@@ -9,7 +9,7 @@ STG forces a healthy division of labor: **the human designs, the AI questions, t
 Most AI-assisted development fails in the same way: the user offloads design to the AI ("you decide"), the AI invents endpoints and logic, tests pass against invented behavior, and nobody notices until production. STG inverts this:
 
 1. **You write the spec** — every touched artifact with complete logic.
-2. **AI interrogates it** — questions (`QUESTION:`) and labeled suggestions (`SUGGESTION:`), never silent redesigns.
+2. **AI interrogates it** — numbered questions (`QUESTION [1]:`) and labeled suggestions (`SUGGESTION [2]:`) with one shared counter per phase, never silent redesigns. You reply by number (`accept 1, 3 / reject 2`).
 3. **You break it into indivisible tasks** (`T-01`, `T-02`, ...) — AI may propose a model breakdown, you decide.
 4. **AI writes failing tests task-by-task** — one task per chat, three assertion layers, halts for your approval each time.
 5. **AI implements task-by-task in a fresh session** — strictly from the final spec, turning Red tests Green with full validation.
@@ -99,7 +99,7 @@ Unacceptable (AI must reject and ask for detail):
 
 > Add login.
 
-Once you provide a spec, the AI interrogates it: ambiguities, missing edge cases, domain invariants. Every question is prefixed `QUESTION:`, every proposal `SUGGESTION:` so your design and AI input never blur together. Then it **HALTS** — nothing proceeds until you finalize the spec.
+Once you provide a spec, the AI interrogates it: ambiguities, missing edge cases, domain invariants. Every question and proposal carries a number from one shared counter per phase — `QUESTION [1]:`, `QUESTION [2]:`, `SUGGESTION [3]:` — so your design and AI input never blur together, and you reply by number: `accept 1, 3 / reject 2 / 4 → use Redis instead`. (Quadrants keep their `Q1`–`Q4` names; bracketed `[N]` numbers are the reply handles.) Then it **HALTS** — nothing proceeds until you finalize the spec.
 
 ### Phase 1 — You decompose, AI records
 
