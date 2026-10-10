@@ -12,7 +12,7 @@ Forbidden: Modifying tests to match broken code.
 
 ## Workflow
 
-1. Select core invariants from Phase 4 (boundary checks, auth gates, state locks).
+1. Select core invariants implemented via `/spec-test-gate:implement` (boundary checks, auth gates, state locks).
 2. Inject controlled mutations (invert conditionals, bypass validation).
 3. Unit + API/E2E: FAIL = invariant verified; PASS = mirage test, flag for reinforcement.
 4. Revert to Green.

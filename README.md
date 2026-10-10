@@ -36,7 +36,7 @@ Verify:
 /plugin list
 ```
 
-You should see `spec-test-gate@spec-test-gate-marketplace` enabled. Plugin commands are namespaced: `/spec-test-gate:init`, `/spec-test-gate:spec-test-gate`, `/spec-test-gate:step-task`, `/spec-test-gate:phase-4`, `/spec-test-gate:phase-5`.
+You should see `spec-test-gate@spec-test-gate-marketplace` enabled. Plugin commands are namespaced: `/spec-test-gate:init`, `/spec-test-gate:spec-test-gate`, `/spec-test-gate:step-task`, `/spec-test-gate:implement`, `/spec-test-gate:audit`, `/spec-test-gate:clean`.
 
 Local dev (no marketplace): `claude --plugin-dir ./plugins/spec-test-gate`, or validate with `claude plugin validate ./plugins/spec-test-gate` and `claude plugin validate .` for the marketplace.
 
@@ -47,8 +47,8 @@ Local dev (no marketplace): `claude --plugin-dir ./plugins/spec-test-gate`, or v
 | `/spec-test-gate:init <language> [framework]` | Setup | Writes `.agents/stack.env` with test/lint/format/API/mutation commands. See [Stacks](#stacks). |
 | `/spec-test-gate:spec-test-gate` | Phase 0 + 1 | Starts the workflow: you write the spec, AI interrogates, you decompose into tasks. |
 | `/spec-test-gate:step-task T-01` | Phase 2 | Authors the failing test harness for exactly ONE task, then halts for approval. |
-| `/spec-test-gate:phase-4` | Phase 4 (fresh session) | Implements tasks one by one from the final spec. Tests are frozen. |
-| `/spec-test-gate:phase-5` | Phase 5 | Mutation audit + final Green validation. |
+| `/spec-test-gate:implement` | Implement (fresh session) | Implements tasks one by one from the final spec. Tests are frozen. |
+| `/spec-test-gate:audit` | Audit | Mutation audit + final Green validation. |
 | `/spec-test-gate:clean [--all]` | Cleanup | Removes `.agents/stack.env` (`--all` removes whole `.agents/`). Asks for confirmation. Does not uninstall the plugin. |
 
 ## The workflow in detail
@@ -152,12 +152,12 @@ You review the harness. Only when you approve `T-01` do you open a fresh chat fo
 
 After ALL harnesses are approved, the AI tells you to open a **fresh session** for implementation. This isolation is deliberate: the implementing agent must see only the final spec + Red tests, never the design discussion.
 
-### Phase 4 — Task-by-task Green (fresh session)
+### Implement — Task-by-task Green (fresh session)
 
 In the new session, run:
 
 ```bash
-/spec-test-gate:phase-4
+/spec-test-gate:implement
 ```
 
 The AI (see [plugins/spec-test-gate/agents/implementer.md](plugins/spec-test-gate/agents/implementer.md)):
@@ -169,17 +169,17 @@ The AI (see [plugins/spec-test-gate/agents/implementer.md](plugins/spec-test-gat
 5. Updates `Implementation Status` in `task_queue.md` and **HALTS** for your confirmation before the next task.
 6. Leaves everything uncommitted for your inspection.
 
-### Phase 5 — Mutation audit + final validation
+### Audit — Mutation audit + final validation
 
 Run:
 
 ```bash
-/spec-test-gate:phase-5
+/spec-test-gate:audit
 ```
 
 The AI (see [plugins/spec-test-gate/agents/auditor.md](plugins/spec-test-gate/agents/auditor.md)):
 
-1. Selects core invariants from Phase 4 (boundary checks, auth gates, state locks).
+1. Selects core invariants implemented via `implement` (boundary checks, auth gates, state locks).
 2. Injects controlled temporary mutations (inverted conditionals, bypassed validation).
 3. Runs unit + API/E2E suites:
    - **FAIL** = invariant genuinely guarded, good.
@@ -220,8 +220,8 @@ plugins/spec-test-gate/
     init.md                           # :init — stack setup
     spec-test-gate.md                 # :spec-test-gate — Phases 0+1
     step-task.md                      # :step-task — Phase 2, one task
-    phase-4.md                        # :phase-4 — implementation
-    phase-5.md                        # :phase-5 — audit
+    implement.md                      # :implement — task-by-task Green
+    audit.md                          # :audit — mutation audit + validation
     clean.md                          # :clean — remove project state
   agents/
     test-author.md                    # Session 1 persona
@@ -238,7 +238,7 @@ Tell it to stop and ask questions instead. The skill, commands, and agents all f
 **Can I batch tasks to go faster?**
 No — batching is the failure mode STG exists to prevent. One task, one chat, one approval.
 
-**Why a fresh session for Phase 4?**
+**Why a fresh session for implement?**
 So implementation is driven only by the approved spec + Red tests, not by design-discussion context that invites improvisation.
 
 **Why three test layers?**
