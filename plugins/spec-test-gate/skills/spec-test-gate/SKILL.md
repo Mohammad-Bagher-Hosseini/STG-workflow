@@ -12,7 +12,8 @@ Opt-in, test-first, approval-gated workflow. The **user owns the design** — th
 1. **Comment Policy:** All code comments MUST be in English, each on its own line. Never trailing inline comments.
 2. **Deterministic TDD:** Never assume logic. Rely strictly on interfaces and test assertions.
 3. **User Owns the Design:** The AI MUST NEVER write the spec for the user. The user writes the spec including all touched artifacts and full logic. The AI only asks numbered questions (`QUESTION [N]:`) and offers numbered, labeled suggestions (`SUGGESTION [N]:`) so the user can reply by number. If the user offloads design ("you decide"), push back and force a decision.
-4. **Session Isolation:**
+4. **Project state lives under `.agents/`:** Stack config is `.agents/stack.env`; each epic's spec + queue is `.agents/<slug>/task_queue.md` in the CURRENT project. NEVER create a `templates/` directory in the project — `templates/` lives inside the plugin; the project only gets `.agents/`.
+5. **Session Isolation:**
    - Session 1 (this skill + `test-author` agent): spec review + test authoring. No business logic.
    - Session 2 (`/spec-test-gate:implement` + `implementer` agent, fresh session): task-by-task implementation. Tests frozen.
    - Session 3 (`/spec-test-gate:audit` + `auditor` agent): mutation audit + final Green validation.
@@ -28,20 +29,28 @@ Toolchain commands come from plugin config or the project's test setup. Never ha
    - Same rule for DB tables/migrations, background jobs, frontend components/routes, config changes.
 3. Interrogate the provided spec for ambiguities, missing edge cases, domain invariants.
 4. Number every question and suggestion with ONE shared counter per phase: `QUESTION [1]:`, `QUESTION [2]:`, `SUGGESTION [3]:`, ... Never reuse a number within the same phase; follow-up rounds continue the counter. (Quadrants keep their own `Q1`–`Q4` names — bracketed `[N]` numbers are the reply handles, so there is no clash.)
-5. End each interrogation round by telling the user to reply by number, e.g. `accept 1, 3 / reject 2 / 4 → use Redis instead of in-memory`.
+5. NEVER send an interrogation round with unnumbered items. Every round looks like this:
+   ```text
+   QUESTION [1]: What should the rate limit for login be?
+   QUESTION [2]: Unknown phone — 404 or 401?
+   SUGGESTION [3]: 5 attempts/minute per phone with lockout.
+   Reply by number, e.g. `accept 1, 3 / reject 2 / 4 → use Redis instead of in-memory`.
+   ```
 6. **HALT.** Wait for the user to finalize the spec.
 
-## Phase 1 — User-Led Decomposition
+## Phase 1 — User-Led Decomposition (per-epic queue)
 
 1. Ask the USER to break the finalized spec into an Indivisible Task Queue (`T-01`, `T-02`, ...).
-2. You MAY propose a model breakdown labeled `SUGGESTION:` — the user decides.
-3. Only after explicit confirmation, write `templates/task_queue.md` with the user-approved queue.
-4. **HALT** for queue confirmation.
+2. You MAY propose a model breakdown as numbered `SUGGESTION [N]:` items (continuing the phase counter) — the user decides.
+3. Derive an epic slug from the spec (kebab-case, e.g. `login-api`) and confirm it with the user — they may rename it. The slug scopes this epic's state so later epics get their own files.
+4. Only after explicit confirmation, write the queue to `.agents/<slug>/task_queue.md` in the CURRENT project (e.g. `.agents/login-api/task_queue.md`), using the blank template from the plugin's own `templates/task_queue.md` as the structure. Rule 4 applies: never a project-level `templates/` dir.
+5. **HALT** for queue confirmation.
 
 ## Phase 2 — Single-Task Test Loop (one task per chat)
 
-For ONLY the next pending `T-[N]` (via `/spec-test-gate:step-task`):
+For ONLY the next pending `T-[N]` (via `/spec-test-gate:step-task T-[N] [--epic <slug>]`):
 
+0. Resolve the queue file first: if `--epic` is given, use `.agents/<slug>/task_queue.md`; if omitted and exactly one `.agents/*/task_queue.md` exists, use it; if several exist, HALT and ask the user which epic. Read the task row from that file — never invent task content.
 1. Explain its behavior quadrant (Q1 Happy, Q2 Boundary, Q3 Invariant, Q4 Failure/Rollback).
 2. Scaffold the minimal interface/struct so tests compile.
 3. Write the failing test with Triple-Point Assertions — Layer 1 Transport/API, Layer 2 Contract/Domain, Layer 3 Database/State.
@@ -50,4 +59,4 @@ For ONLY the next pending `T-[N]` (via `/spec-test-gate:step-task`):
 
 ## Phase 3 — Handoff
 
-After ALL harnesses are approved, tell the user to open a FRESH session and run `/spec-test-gate:implement` for task-by-task implementation, then `/spec-test-gate:audit` for audit.
+After ALL harnesses are approved, tell the user to open a FRESH session and run `/spec-test-gate:implement [<slug>]` for task-by-task implementation (it resolves the same epic queue), then `/spec-test-gate:audit` for audit.

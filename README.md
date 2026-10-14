@@ -46,10 +46,10 @@ Local dev (no marketplace): `claude --plugin-dir ./plugins/spec-test-gate`, or v
 |---|---|---|
 | `/spec-test-gate:init <language> [framework]` | Setup | Writes `.agents/stack.env` with test/lint/format/API/mutation commands. See [Stacks](#stacks). |
 | `/spec-test-gate:spec-test-gate` | Phase 0 + 1 | Starts the workflow: you write the spec, AI interrogates, you decompose into tasks. |
-| `/spec-test-gate:step-task T-01` | Phase 2 | Authors the failing test harness for exactly ONE task, then halts for approval. |
-| `/spec-test-gate:implement` | Implement (fresh session) | Implements tasks one by one from the final spec. Tests are frozen. |
+| `/spec-test-gate:step-task T-01 [--epic slug]` | Phase 2 | Authors the failing test harness for exactly ONE task, then halts for approval. |
+| `/spec-test-gate:implement [slug]` | Implement (fresh session) | Implements tasks one by one from the final spec. Tests are frozen. |
 | `/spec-test-gate:audit` | Audit | Mutation audit + final Green validation. |
-| `/spec-test-gate:clean [--all]` | Cleanup | Removes `.agents/stack.env` (`--all` removes whole `.agents/`). Asks for confirmation. Does not uninstall the plugin. |
+| `/spec-test-gate:clean [--epic slug \| --all]` | Cleanup | Removes `.agents/stack.env` (`--epic` removes one epic, `--all` removes whole `.agents/`). Asks for confirmation. Does not uninstall the plugin. |
 
 ## The workflow in detail
 
@@ -101,11 +101,11 @@ Unacceptable (AI must reject and ask for detail):
 
 Once you provide a spec, the AI interrogates it: ambiguities, missing edge cases, domain invariants. Every question and proposal carries a number from one shared counter per phase — `QUESTION [1]:`, `QUESTION [2]:`, `SUGGESTION [3]:` — so your design and AI input never blur together, and you reply by number: `accept 1, 3 / reject 2 / 4 → use Redis instead`. (Quadrants keep their `Q1`–`Q4` names; bracketed `[N]` numbers are the reply handles.) Then it **HALTS** — nothing proceeds until you finalize the spec.
 
-### Phase 1 — You decompose, AI records
+### Phase 1 — You decompose, AI records (one queue per epic)
 
 You break the finalized spec into an **Indivisible Task Queue** (`T-01`, `T-02`, ...). A task is indivisible if it covers one behavior in one boundary — e.g. "T-01: phone lookup returns 404 for unknown phone" is a task; "build auth" is not.
 
-The AI MAY propose a model breakdown, always labeled `SUGGESTION:`. You decide the final queue. Only after your explicit confirmation does the AI write [plugins/spec-test-gate/templates/task_queue.md](plugins/spec-test-gate/templates/task_queue.md):
+The AI MAY propose a model breakdown as numbered `SUGGESTION [N]:` items. You decide the final queue and confirm an epic slug (kebab-case, e.g. `login-api`) — the next epic you do gets its own slug and its own file, so queues never collide. Only after your explicit confirmation does the AI write `.agents/<slug>/task_queue.md` in your project (e.g. `.agents/login-api/task_queue.md`), structured like the blank [plugins/spec-test-gate/templates/task_queue.md](plugins/spec-test-gate/templates/task_queue.md) — that `templates/` folder lives inside the plugin and is NEVER copied into your project:
 
 ```markdown
 ## 1. User Spec (with touched artifacts & full logic)
@@ -128,8 +128,10 @@ Then it **HALTS** for queue confirmation.
 For each task, in its **own separate chat**, run e.g.:
 
 ```bash
-/spec-test-gate:step-task T-01
+/spec-test-gate:step-task T-01 --epic login-api
 ```
+
+(`--epic` is optional when your project has only one queue — the AI uses the single `.agents/*/task_queue.md`. With several epics, it asks which one.)
 
 The AI (see [plugins/spec-test-gate/agents/test-author.md](plugins/spec-test-gate/agents/test-author.md)):
 
@@ -157,16 +159,16 @@ After ALL harnesses are approved, the AI tells you to open a **fresh session** f
 In the new session, run:
 
 ```bash
-/spec-test-gate:implement
+/spec-test-gate:implement login-api
 ```
 
-The AI (see [plugins/spec-test-gate/agents/implementer.md](plugins/spec-test-gate/agents/implementer.md)):
+(The slug is optional with a single queue, required to disambiguate with several.) The AI (see [plugins/spec-test-gate/agents/implementer.md](plugins/spec-test-gate/agents/implementer.md)):
 
-1. Reads the final spec, failing assertions, and `task_queue.md`.
+1. Reads the final spec, failing assertions, and `.agents/login-api/task_queue.md`.
 2. Picks up **only the next pending task** — never batches.
 3. Writes minimal production code to turn that task's Red tests Green. Test files are **frozen** — modifying, deleting, or skipping them is forbidden, as is deviating from the spec without your approval.
 4. Runs lint + the **full** suite (unit + API/E2E + regression) so earlier Green tasks stay Green.
-5. Updates `Implementation Status` in `task_queue.md` and **HALTS** for your confirmation before the next task.
+5. Updates `Implementation Status` in the same queue file and **HALTS** for your confirmation before the next task.
 6. Leaves everything uncommitted for your inspection.
 
 ### Audit — Mutation audit + final validation
@@ -227,7 +229,17 @@ plugins/spec-test-gate/
     test-author.md                    # Session 1 persona
     implementer.md                    # Session 2 persona
     auditor.md                        # Session 3 persona
-  templates/task_queue.md             # Spec + queue record
+  templates/task_queue.md             # BLANK template (stays in plugin!)
+```
+
+In YOUR project the plugin only ever creates state under `.agents/` — no `templates/` dir, no scattered files:
+
+```text
+your-project/
+  .agents/
+    stack.env                     # from :init
+    login-api/task_queue.md       # epic 1 spec + queue (from :spec-test-gate)
+    billing/task_queue.md         # epic 2 gets its own slug + file
 ```
 
 ## FAQ
@@ -243,6 +255,13 @@ So implementation is driven only by the approved spec + Red tests, not by design
 
 **Why three test layers?**
 Because single-layer tests lie: API-only tests miss state corruption, DB-only tests miss contract breaks. A task is Green only when Transport, Contract, and State all agree.
+
+**The AI created a `templates/` folder in my project. Is that right?**
+No — that's a bug in versions before 1.6.0. The plugin must only write under `.agents/`. Delete the stray `templates/` dir, then update to ≥1.6.0:
+`/plugin marketplace update spec-test-gate-marketplace`
+
+**I have two features in one project. Do they share one queue?**
+No — each gets its own epic slug and file: `.agents/login-api/task_queue.md`, `.agents/billing/task_queue.md`. Pass `--epic <slug>` (or the slug to `implement`) whenever there's more than one.
 
 ## Uninstall
 
