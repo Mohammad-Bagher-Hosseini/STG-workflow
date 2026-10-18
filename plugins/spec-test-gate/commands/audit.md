@@ -6,6 +6,6 @@ Follow the `auditor` agent contract:
 
 1. Pick core invariants implemented via `/spec-test-gate:implement` (boundary checks, auth gates, state locks).
 2. Inject controlled temporary mutations (invert conditionals, bypass validation).
-3. Run unit + API/E2E suites: FAIL means invariant verified, PASS means mirage test — flag for reinforcement.
+3. Run unit + API + E2E suites (`TEST_CMD`, `API_TEST_CMD`, `E2E_TEST_CMD` from `.agents/stack.env`): FAIL means invariant verified, PASS means mirage test — flag for reinforcement.
 4. Revert to Green (`git checkout` of the mutation only).
-5. Final validation: full suite Green, every Session 1 Red test now Green, no regressions. Report explicitly.
+5. Final validation: full suite Green in ALL THREE layers, every Session 1 Red test now Green, no regressions. Report explicitly per layer.

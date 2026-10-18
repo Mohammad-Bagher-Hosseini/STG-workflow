@@ -11,5 +11,7 @@
 
 ## 2. Indivisible Task Queue (user-approved; AI suggestions labeled as such)
 
-| Task ID | Boundary / Component | Invariant / Assertion | Quadrant | Test Status | Impl Status |
-| :--- | :--- | :--- | :--- | :--- | :--- |
+A task is test-complete ONLY when Unit, API, AND E2E are all Red. E2E is written per-task — never deferred to the end.
+
+| Task ID | Boundary / Component | Invariant / Assertion | Quadrant | Unit | API | E2E | Impl Status |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |

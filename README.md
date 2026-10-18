@@ -11,8 +11,8 @@ Most AI-assisted development fails in the same way: the user offloads design to 
 1. **You write the spec** — every touched artifact with complete logic.
 2. **AI interrogates it** — numbered questions (`QUESTION [1]:`) and labeled suggestions (`SUGGESTION [2]:`) with one shared counter per phase, never silent redesigns. You reply by number (`accept 1, 3 / reject 2`).
 3. **You break it into indivisible tasks** (`T-01`, `T-02`, ...) — AI may propose a model breakdown, you decide.
-4. **AI writes failing tests task-by-task** — one task per chat, three assertion layers, halts for your approval each time.
-5. **AI implements task-by-task in a fresh session** — strictly from the final spec, turning Red tests Green with full validation.
+4. **AI writes failing tests task-by-task, BEFORE any logic** — one task per chat, all three layers (L1 Unit, L2 API, L3 E2E) Red before proceeding, halts for your approval each time. E2E is written per-task, never deferred to the end.
+5. **AI implements task-by-task in a fresh session** — strictly from the final spec, turning Red tests Green with full validation. A task missing any Red layer is refused outright (all-Red gate, no bypass).
 6. **AI audits with mutations** — proves the tests actually guard the invariants, then confirms a fully Green state.
 
 If you try to push design back onto the AI, it is instructed to push back and force a decision.
@@ -46,8 +46,8 @@ Local dev (no marketplace): `claude --plugin-dir ./plugins/spec-test-gate`, or v
 |---|---|---|
 | `/spec-test-gate:init <language> [framework]` | Setup | Writes `.agents/stack.env` with test/lint/format/API/mutation commands. See [Stacks](#stacks). |
 | `/spec-test-gate:spec-test-gate` | Phase 0 + 1 | Starts the workflow: you write the spec, AI interrogates, you decompose into tasks. |
-| `/spec-test-gate:step-task T-01 [--epic slug]` | Phase 2 | Authors the failing test harness for exactly ONE task, then halts for approval. |
-| `/spec-test-gate:implement [slug]` | Implement (fresh session) | Implements tasks one by one from the final spec. Tests are frozen. |
+| `/spec-test-gate:step-task T-01 [--epic slug]` | Phase 2 | Writes L1 Unit + L2 API + L3 E2E failing tests for exactly ONE task (no production logic), then halts for approval. |
+| `/spec-test-gate:implement [slug]` | Implement (fresh session) | Implements tasks one by one from the final spec. Tests are frozen. Refuses tasks missing any Red layer. |
 | `/spec-test-gate:audit` | Audit | Mutation audit + final Green validation. |
 | `/spec-test-gate:clean [--epic slug \| --all]` | Cleanup | Removes `.agents/stack.env` (`--epic` removes one epic, `--all` removes whole `.agents/`). Asks for confirmation. Does not uninstall the plugin. |
 
@@ -75,6 +75,7 @@ TEST_CMD_RACE="go test -race ./..."
 LINT_CMD="golangci-lint run"
 FORMAT_CMD="gofmt -s -w ."
 API_TEST_CMD="bru run api-tests/ --env Local"
+E2E_TEST_CMD="go test -run ^TestE2E ./..."
 ```
 
 Re-running `/init` without `--force` shows the current file and halts instead of overwriting.
@@ -115,10 +116,11 @@ The AI MAY propose a model breakdown as numbered `SUGGESTION [N]:` items. You de
 - **Invariants:** never reveal whether phone exists via timing; passwords argon2-hashed
 
 ## 2. Indivisible Task Queue (user-approved)
-| Task ID | Boundary / Component | Invariant / Assertion | Quadrant | Test Status | Impl Status |
-| T-01 | API / login | unknown phone -> 404 PHONE_NOT_FOUND | Q4 | Red | pending |
-| T-02 | API / login | wrong password -> 401 INVALID_CREDENTIALS | Q4 | pending | pending |
-| T-03 | API / login | correct credentials -> JWT | Q1 | pending | pending |
+A task is test-complete ONLY when Unit, API, AND E2E are all Red. E2E is written per-task — never deferred.
+| Task ID | Boundary / Component | Invariant / Assertion | Quadrant | Unit | API | E2E | Impl Status |
+| T-01 | API / login | unknown phone -> 404 PHONE_NOT_FOUND | Q4 | Red | Red | Red | pending |
+| T-02 | API / login | wrong password -> 401 INVALID_CREDENTIALS | Q4 | pending | pending | pending | pending |
+| T-03 | API / login | correct credentials -> JWT | Q1 | pending | pending | pending | pending |
 ```
 
 Then it **HALTS** for queue confirmation.
@@ -133,20 +135,20 @@ For each task, in its **own separate chat**, run e.g.:
 
 (`--epic` is optional when your project has only one queue — the AI uses the single `.agents/*/task_queue.md`. With several epics, it asks which one.)
 
-The AI (see [plugins/spec-test-gate/agents/test-author.md](plugins/spec-test-gate/agents/test-author.md)):
+The AI (see [plugins/spec-test-gate/agents/test-author.md](plugins/spec-test-gate/agents/test-author.md)) — and it MUST NOT write production logic here, only tests + empty stubs:
 
 1. Explains the behavior quadrant:
    - **Q1 Happy** — the golden path.
    - **Q2 Boundary** — limits, empty/max inputs, pagination edges.
    - **Q3 Invariant** — rules that must always hold (auth gates, state locks).
    - **Q4 Failure/Rollback** — errors, rollbacks, rate limits.
-2. Scaffolds the minimal interface/struct so tests compile (no logic).
-3. Writes the failing test with **Triple-Point Assertions**:
-   - **Layer 1 Transport/API** — status codes, headers, error shapes over HTTP.
-   - **Layer 2 Contract/Domain** — return values, service contracts, validation rules.
-   - **Layer 3 Database/State** — rows written, state transitions, side effects.
-4. Runs the suite and verifies a **pure Red** — failing on behavior, not on missing scaffolding.
-5. **CRITICAL HALT:** prints `Task T-01 test harness staged. Ready for review.` and stops. It must not touch `T-02`.
+2. Writes the failing tests for THIS task FIRST, in all three layers:
+   - **L1 Unit** — pure domain/service logic, no HTTP/DB.
+   - **L2 API** — real HTTP (status codes, bodies, error shapes; e.g. PocketBase `ApiScenario`).
+   - **L3 E2E** — full user journey incl. DB/state, written per-task, never deferred to the end.
+3. Scaffolds ONLY empty stubs so tests compile. A stub that makes a test pass is a violation.
+4. Runs all three layers and verifies each is Red on behavior. Marks `Unit Red | API Red | E2E Red` in the queue; any missing/Green-wrong layer is reported and halts.
+5. **CRITICAL HALT:** prints `Task T-01 test harness staged (L1 Red, L2 Red, L3 Red). Ready for review.` and stops. It must not touch `T-02`.
 
 You review the harness. Only when you approve `T-01` do you open a fresh chat for `T-02`. Repeat to the end of the queue.
 
@@ -253,8 +255,11 @@ No — batching is the failure mode STG exists to prevent. One task, one chat, o
 **Why a fresh session for implement?**
 So implementation is driven only by the approved spec + Red tests, not by design-discussion context that invites improvisation.
 
-**Why three test layers?**
-Because single-layer tests lie: API-only tests miss state corruption, DB-only tests miss contract breaks. A task is Green only when Transport, Contract, and State all agree.
+**Why three test layers (L1/L2/L3)?**
+Because single-layer tests lie: API-only tests miss state corruption, unit-only tests miss contract breaks. A task is Green only when Unit, API, and E2E all agree — and all three are written per-task in Phase 2, before any production logic exists.
+
+**The AI wrote implementation code during step-task. Is that right?**
+No — that's forbidden since 1.8.0. `step-task` may only write failing tests + empty stubs. If it happened, tell it to delete the logic, re-verify Red, and continue. If `implement` is asked to build a task whose layers aren't all Red, it must refuse and send you back to `step-task`.
 
 **The AI created a `templates/` folder in my project. Is that right?**
 No — that's a bug in versions before 1.6.0. The plugin must only write under `.agents/`. Delete the stray `templates/` dir, then update to ≥1.6.0:

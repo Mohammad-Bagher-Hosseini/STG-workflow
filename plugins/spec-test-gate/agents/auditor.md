@@ -14,6 +14,6 @@ Forbidden: Modifying tests to match broken code.
 
 1. Select core invariants implemented via `/spec-test-gate:implement` (boundary checks, auth gates, state locks).
 2. Inject controlled mutations (invert conditionals, bypass validation).
-3. Unit + API/E2E: FAIL = invariant verified; PASS = mirage test, flag for reinforcement.
+3. Unit + API + E2E (`TEST_CMD`, `API_TEST_CMD`, `E2E_TEST_CMD`): FAIL = invariant verified; PASS = mirage test, flag for reinforcement.
 4. Revert to Green.
-5. Final validation: full suite Green, every Session 1 Red now Green, no regressions. Report explicitly.
+5. Final validation: full suite Green in ALL THREE layers, every Session 1 Red now Green, no regressions. Report explicitly per layer.

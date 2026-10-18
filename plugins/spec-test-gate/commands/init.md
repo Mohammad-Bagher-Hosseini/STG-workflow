@@ -30,27 +30,27 @@ Scope guard: run this inside a TARGET project repo, never inside the spec-test-g
 
 ### go
 
-Base for all Go frameworks: `TEST_CMD="go test ./..."`, `TEST_CMD_RACE="go test -race ./..."`, `LINT_CMD="golangci-lint run"`, `FORMAT_CMD="gofmt -s -w ."`, `API_TEST_CMD="bru run api-tests/ --env Local"`. Set `FRAMEWORK="<name>"`. Framework notes:
+Base for all Go frameworks: `TEST_CMD="go test ./..."`, `TEST_CMD_RACE="go test -race ./..."`, `LINT_CMD="golangci-lint run"`, `FORMAT_CMD="gofmt -s -w ."`, `API_TEST_CMD="bru run api-tests/ --env Local"`, `E2E_TEST_CMD="go test -run ^TestE2E ./..."`. Set `FRAMEWORK="<name>"`. Framework notes:
 
-- `standard` (default): plain stdlib/Testify.
+- `standard` (default): plain stdlib/Testify. L3 E2E = `E2E_TEST_CMD` above.
 - `gin` | `echo` | `fiber` | `chi`: same commands; note in the confirmation that handler tests should use the framework's `httptest` helpers.
-- `pocketbase`: takes optional `[test_dir] [bruno_dir]` (defaults `./...`, `tests/bruno`). `TEST_CMD="go test <test_dir>"`, plus `TEST_UNIT_CMD="go test -run ^TestUnit ./..."`, `TEST_INTEGRATION_CMD="go test -run ^TestApi ./..."`, `MUTATION_TOOL="go-mutesting"`, `MUTATION_CMD="go-mutesting ./..."`, `API_TEST_CMD="bru run <bruno_dir> --env Local"`.
+- `pocketbase`: takes optional `[test_dir] [bruno_dir]` (defaults `./...`, `tests/bruno`). `TEST_CMD="go test <test_dir>"`, plus `TEST_UNIT_CMD="go test -run ^TestUnit ./..."`, `TEST_INTEGRATION_CMD="go test -run ^TestApi ./..."`, `E2E_TEST_CMD="go test -run ^TestE2E <test_dir>"` (framework-native `ApiScenario`-style journey tests), `MUTATION_TOOL="go-mutesting"`, `MUTATION_CMD="go-mutesting ./..."`, `API_TEST_CMD="bru run <bruno_dir> --env Local"`.
 
 ### typescript
 
-Base: `TEST_CMD="pnpm test"`, `TEST_CMD_RACE="pnpm test --run"`, `LINT_CMD="pnpm lint"`, `FORMAT_CMD="pnpm format"`, `API_TEST_CMD="bru run api-tests/ --env Local"`. Set `FRAMEWORK="<name>"`. Framework notes:
+Base: `TEST_CMD="pnpm test"`, `TEST_CMD_RACE="pnpm test --run"`, `LINT_CMD="pnpm lint"`, `FORMAT_CMD="pnpm format"`, `API_TEST_CMD="bru run api-tests/ --env Local"`, `E2E_TEST_CMD="pnpm test:e2e"` (Playwright/Cypress command where the project uses it — ask the user if unsure). Set `FRAMEWORK="<name>"`. Framework notes:
 
 - `node` (default): plain Vitest/Prisma.
 - `express` | `fastify`: same commands; handler tests via `supertest`.
-- `nest`: `TEST_CMD="pnpm test"`, add `TEST_E2E_CMD="pnpm test:e2e"` and note that e2e specs live under `test/`.
+- `nest`: `TEST_CMD="pnpm test"`, `E2E_TEST_CMD="pnpm test:e2e"`, and note that e2e specs live under `test/`.
 - `next`: `TEST_CMD="pnpm test"`, note App Router route handlers test via `next-test-api-route-handler` or plain `Request` mocks.
 
 ### python
 
-Base: `TEST_CMD="pytest"`, `TEST_CMD_RACE="pytest -n auto"`, `LINT_CMD="ruff check ."`, `FORMAT_CMD="ruff format ."`, `API_TEST_CMD="bru run api-tests/ --env Local"`. Set `FRAMEWORK="<name>"`. Framework notes:
+Base: `TEST_CMD="pytest"`, `TEST_CMD_RACE="pytest -n auto"`, `LINT_CMD="ruff check ."`, `FORMAT_CMD="ruff format ."`, `API_TEST_CMD="bru run api-tests/ --env Local"`, `E2E_TEST_CMD="pytest -m e2e"` (ask the user for their E2E runner if they mark tests differently). Set `FRAMEWORK="<name>"`. Framework notes:
 
 - `standard` (default): plain pytest/alembic.
-- `django`: `TEST_CMD="python manage.py test"`, `TEST_CMD_RACE="python manage.py test --parallel"`, add `MIGRATION_CMD="python manage.py migrate"`, keep ruff for lint/format.
+- `django`: `TEST_CMD="python manage.py test"`, `TEST_CMD_RACE="python manage.py test --parallel"`, `E2E_TEST_CMD="python manage.py test --tag=e2e"` (or the project's live-server runner — ask if unsure), add `MIGRATION_CMD="python manage.py migrate"`, keep ruff for lint/format.
 - `fastapi`: same as base; note endpoint tests via `httpx.AsyncClient` + `ASGITransport`.
 - `flask`: same as base; note endpoint tests via the Flask test client.
 - `frappe`: takes `<app> [site]` (ask if app missing; site defaults to `test_site`). `TEST_CMD="bench --site <site> run-tests --app<app>"`, `TEST_CMD_RACE="bench --site <site> run-tests --app<app> --force"`, `LINT_CMD="ruff check apps/<app>"`, `FORMAT_CMD="ruff format apps/<app>"`, `MIGRATION_CMD="bench --site <site> migrate"`, `MUTATION_TOOL="mutmut"`, `MUTATION_CMD="mutmut run --paths-to-mutate apps/<app>"`.
