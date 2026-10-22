@@ -1,0 +1,16 @@
+# dsh-spec-test-gate — Spec-Test-Gate workflow for DeepSeek Harness.
+#
+# What you get after install:
+#   /stg           Start STG Phase 0+1 (you write the spec, AI interrogates, you decompose into tasks).
+#   /stg-init      Write .agents/stack.env toolchain config  (mirrors /spec-test-gate:init).
+#   /stg-step      Stage L1+L2+L3 failing tests for ONE task (mirrors /spec-test-gate:step-task).
+#   /stg-implement Implement tasks one by one from the final spec (mirrors /spec-test-gate:implement).
+#   /stg-audit     Mutation audit + final Green validation (mirrors /spec-test-gate:audit).
+#   /stg-clean     Remove STG project state under .agents/ (mirrors /spec-test-gate:clean).
+#   skill          The "spec-test-gate" skill with the full workflow rules (use the skill tool to load it).
+#
+# Mounts the single host plugin "dsh-spec-test-gate" (lib/index.js) under its
+# package name, resolved through the profile's node_modules.
+- insert:
+    - id: dsh-spec-test-gate
+      name: dsh-spec-test-gate

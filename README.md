@@ -40,6 +40,31 @@ You should see `spec-test-gate@spec-test-gate-marketplace` enabled. Plugin comma
 
 Local dev (no marketplace): `claude --plugin-dir ./plugins/spec-test-gate`, or validate with `claude plugin validate ./plugins/spec-test-gate` and `claude plugin validate .` for the marketplace.
 
+## Install on DeepSeek Harness
+
+This repo is also a DeepSeek Harness (dsh) plugin bundle (`dsh-spec-test-gate`). Install it straight from the git URL into any profile:
+
+```bash
+dsh plugin --profile web add github:Mohammad-Bagher-Hosseini/STG-workflow
+```
+
+Then restart the harness (`dsh web`) so the new bundle is composed. Verify on the Plugins page that `dsh-spec-test-gate` is listed and enabled.
+
+What you get:
+
+- Skill `spec-test-gate` — the full STG workflow bundle (rules, commands, agents, epic queue template). The agent loads it with the skill tool before acting on any STG task.
+- Slash commands (same workflow as the Claude commands in parentheses): `/stg` (`spec-test-gate`), `/stg-init` (`init`), `/stg-step T-01 [--epic slug]` (`step-task`), `/stg-implement [slug]` (`implement`), `/stg-audit` (`audit`), `/stg-clean [--epic slug | --all]` (`clean`).
+
+```text
+/stg-init typescript nest
+/stg
+/stg-step T-01 --epic login-api
+/stg-implement login-api
+/stg-audit
+```
+
+Rules, gates, and state layout are identical to the Claude plugin above: you own the spec, L1+L2+L3 must all be Red per task (all-Red gate, no bypass), one task per step with HALT, project state under `.agents/`. The workflow text is read from `plugins/spec-test-gate/` at runtime — a single source of truth for both platforms.
+
 ## Command map
 
 | Command | Phase | What happens |
