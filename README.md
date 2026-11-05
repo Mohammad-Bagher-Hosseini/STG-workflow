@@ -65,6 +65,32 @@ What you get:
 
 Rules, gates, and state layout are identical to the Claude plugin above: you own the spec, L1+L2+L3 must all be Red per task (all-Red gate, no bypass), one task per step with HALT, project state under `.agents/`. The workflow text is read from `plugins/spec-test-gate/` at runtime — a single source of truth for both platforms.
 
+## Install on Google Antigravity
+
+This repo directly supports Google Antigravity. Install it via the `agy` CLI straight from GitHub:
+
+```bash
+agy plugin install Mohammad-Bagher-Hosseini/STG-workflow
+```
+
+Or for local development:
+
+```bash
+agy plugin install ./plugins/spec-test-gate
+```
+
+Validate with:
+
+```bash
+agy plugin validate ./plugins/spec-test-gate
+```
+
+What you get:
+
+- Core skill: `spec-test-gate`
+- Phase skills & slash commands: `/stg-init`, `/stg-step`, `/stg-implement`, `/stg-audit`, `/stg-clean`
+- Specialized agents: `test-author`, `implementer`, `auditor`
+
 ## Command map
 
 | Command | Phase | What happens |
