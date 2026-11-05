@@ -1,7 +1,7 @@
 ---
 name: stg-init
 description: Initialize Spec-Test-Gate toolchain config (.agents/stack.env). Usage /stg-init <language> [framework] [--force].
-argument-hint: [go|typescript|python|custom] [framework] [--force]
+argument-hint: "[go|typescript|python|custom] [framework] [--force]"
 ---
 
 Initialize the STG toolchain by writing `.agents/stack.env` in the CURRENT project directory.
